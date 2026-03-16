@@ -1,7 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { MedicinesService } from './medicines.service';
 import { CreateMedicineDto } from './dto/create-medicine.dto';
 import { UpdateMedicineDto } from './dto/update-medicine.dto';
+import { GetMedicinesFilterDto } from './dto/get-medicines-filter.dto';
 
 @Controller('medicines')
 export class MedicinesController {
@@ -13,22 +23,25 @@ export class MedicinesController {
   }
 
   @Get()
-  findAll() {
-    return this.medicinesService.findAll();
+  findAll(@Query() filterDto: GetMedicinesFilterDto) {
+    return this.medicinesService.findAll(filterDto);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.medicinesService.findOne(+id);
+    return this.medicinesService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMedicineDto: UpdateMedicineDto) {
-    return this.medicinesService.update(+id, updateMedicineDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateMedicineDto: UpdateMedicineDto,
+  ) {
+    return this.medicinesService.update(id, updateMedicineDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.medicinesService.remove(+id);
+    return this.medicinesService.remove(id);
   }
 }
