@@ -19,6 +19,9 @@ export class EnvironmentVariables {
 
   @IsString()
   DB_NAME: string;
+
+  @IsString()
+  DB_SYNCHRONIZE: string = 'false';
 }
 
 export function validateEnv(config: Record<string, unknown>) {

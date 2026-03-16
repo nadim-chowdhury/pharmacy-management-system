@@ -9,9 +9,9 @@ import {
 import { Order } from '../../orders/entities/order.entity';
 
 export enum PaymentStatus {
-  PENDING = 'PENDING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
+  PAID = 'PAID',
+  PARTIAL = 'PARTIAL',
+  DUE = 'DUE',
 }
 export enum PaymentMethod {
   CASH = 'CASH',
@@ -27,8 +27,18 @@ export class Payment {
   @Column({ type: 'enum', enum: PaymentMethod })
   payment_method: PaymentMethod;
 
+  @Column({
+    type: 'enum',
+    enum: PaymentStatus,
+    default: PaymentStatus.PAID,
+  })
+  status: PaymentStatus;
+
   @Column('decimal', { precision: 10, scale: 2 })
   amount_paid: number;
+
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  amount_due: number;
 
   @Column('decimal', { precision: 10, scale: 2, default: 0 })
   change_returned: number;

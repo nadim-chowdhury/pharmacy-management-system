@@ -1,0 +1,58 @@
+<div class="flex h-screen bg-gray-100 overflow-hidden">
+  <!-- Sidebar -->
+  <div class="hidden md:flex md:flex-shrink-0">
+    <div class="flex flex-col w-64">
+      <div class="flex flex-col h-0 flex-1 bg-blue-800">
+        <div class="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+          <div class="flex items-center flex-shrink-0 px-4">
+            <h1 class="text-white text-xl font-bold">Pharmacy POS</h1>
+          </div>
+          <nav class="mt-5 flex-1 px-2 space-y-1">
+            <a routerLink="/medicines" routerLinkActive="bg-blue-900 text-white" class="text-blue-100 hover:bg-blue-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+              Medicines
+            </a>
+            <a routerLink="/customers" routerLinkActive="bg-blue-900 text-white" class="text-blue-100 hover:bg-blue-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+              Customers
+            </a>
+            <a routerLink="/orders" routerLinkActive="bg-blue-900 text-white" class="text-blue-100 hover:bg-blue-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+              Orders
+            </a>
+            <a routerLink="/payments" routerLinkActive="bg-blue-900 text-white" class="text-blue-100 hover:bg-blue-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+              Payments
+            </a>
+          </nav>
+        </div>
+        <div class="flex-shrink-0 flex bg-blue-900 p-4">
+          <div class="flex-shrink-0 w-full group block">
+            <div class="flex items-center">
+              <div>
+                <div class="inline-block h-9 w-9 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                  {{ authService.currentUser()?.username?.[0]?.toUpperCase() }}
+                </div>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm font-medium text-white">
+                  {{ authService.currentUser()?.username }}
+                </p>
+                <button (click)="logout()" class="text-xs font-medium text-blue-200 group-hover:text-white">
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="flex flex-col w-0 flex-1 overflow-hidden">
+    <main class="flex-1 relative z-0 overflow-y-auto focus:outline-none">
+      <div class="py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+          <router-outlet></router-outlet>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>

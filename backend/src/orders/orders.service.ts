@@ -26,72 +26,73 @@ export class OrdersService {
     await queryRunner.startTransaction();
 
     try {
-      let customer: Customer | null = null;
+      let customer: Customer | undefined = undefined;
       if (createOrderDto.customerId) {
         customer = await queryRunner.manager.findOne(Customer, {
           where: {
             id: createOrderDto.customerId,
           },
-        });
+        }) || undefined;
 
         if (!customer) {
           throw new NotFoundException('Customer not found');
         }
+      }
 
-        let calculatedSubTotal = 0;
-        let calculatedDiscount = 0;
-        const orderItems: OrderItem[] = [];
+      let calculatedSubTotal = 0;
+      let calculatedDiscount = 0;
+      const orderItems: OrderItem[] = [];
 
-        for (const itemDto of createOrderDto.items) {
-          const medicine = await queryRunner.manager.findOne(Medicine, {
-            where: {
-              id: itemDto.medicineId,
-            },
-          });
-
-          if (!medicine) {
-            throw new NotFoundException(
-              `Medicine ID ${itemDto.medicineId} not found`,
-            );
-          }
-
-          if (medicine.stock_quantity < itemDto.quantity) {
-            throw new BadRequestException(
-              `Insufficient stock for ${medicine.name}`,
-            );
-          }
-
-          const lineTotal = Number(medicine.price) * itemDto.quantity;
-          const discountAmount =
-            (lineTotal * Number(medicine.discount_percentage)) / 100;
-
-          calculatedSubTotal += lineTotal;
-          calculatedDiscount += discountAmount;
-
-          medicine.stock_quantity -= itemDto.quantity;
-          await queryRunner.manager.save(medicine);
-
-          const orderItem = queryRunner.manager.create(OrderItem, {
-            medicine: medicine,
-            quantity: itemDto.quantity,
-            unit_price: medicine.price,
-          });
-          orderItems.push(orderItem);
-        }
-
-        const order = queryRunner.manager.create(Order, {
-          customer: customer,
-          items: orderItems,
-          subtotal: calculatedSubTotal,
-          discount: calculatedDiscount,
-          total_amount: calculatedSubTotal - calculatedDiscount,
+      for (const itemDto of createOrderDto.items) {
+        const medicine = await queryRunner.manager.findOne(Medicine, {
+          where: {
+            id: itemDto.medicineId,
+          },
+          lock: { mode: 'pessimistic_write' },
         });
 
-        const savedOrder = await queryRunner.manager.save(order);
+        if (!medicine) {
+          throw new NotFoundException(
+            `Medicine ID ${itemDto.medicineId} not found`,
+          );
+        }
 
-        await queryRunner.commitTransaction();
-        return savedOrder;
+        if (medicine.stock_quantity < itemDto.quantity) {
+          throw new BadRequestException(
+            `Insufficient stock for ${medicine.name}. Available: ${medicine.stock_quantity}, Requested: ${itemDto.quantity}`,
+          );
+        }
+
+        const lineTotal = Number(medicine.price) * itemDto.quantity;
+        const discountAmount =
+          (lineTotal * Number(medicine.discount_percentage)) / 100;
+
+        calculatedSubTotal += lineTotal;
+        calculatedDiscount += discountAmount;
+
+        medicine.stock_quantity -= itemDto.quantity;
+        await queryRunner.manager.save(medicine);
+
+        const orderItem = queryRunner.manager.create(OrderItem, {
+          medicine: medicine,
+          quantity: itemDto.quantity,
+          unit_price: medicine.price,
+        });
+        orderItems.push(orderItem);
       }
+
+      const order = queryRunner.manager.create(Order, {
+        customer: customer,
+        items: orderItems,
+        subtotal: calculatedSubTotal,
+        discount: calculatedDiscount,
+        total_amount: calculatedSubTotal - calculatedDiscount,
+      });
+
+      const savedOrder = await queryRunner.manager.save(order);
+
+      await queryRunner.commitTransaction();
+      return savedOrder;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

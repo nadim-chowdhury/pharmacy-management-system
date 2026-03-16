@@ -9,7 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Payment } from './entities/payment.entity';
 import { Repository } from 'typeorm';
 import { Order } from '../orders/entities/order.entity';
-import { PaymentMethod } from './entities/payment.entity';
+import { PaymentMethod, PaymentStatus } from './entities/payment.entity';
 
 @Injectable()
 export class PaymentsService {
@@ -44,21 +44,28 @@ export class PaymentsService {
       selectedMethod = createPaymentDto.paymentMethod as PaymentMethod;
     }
 
-    // Explicitly derive change owed to ensure financial integrity.
-    const calculatedChange =
-      Number(createPaymentDto.amountPaid) - Number(order.total_amount);
+    // Explicitly derive change owed or amount due
+    const totalAmount = Number(order.total_amount);
+    const amountPaid = Number(createPaymentDto.amountPaid);
+    
+    let status: PaymentStatus = PaymentStatus.PAID;
+    let changeReturned = 0;
+    let amountDue = 0;
 
-    if (calculatedChange < 0) {
-      throw new BadRequestException(
-        `Amount paid (${createPaymentDto.amountPaid}) is insufficient for total (${order.total_amount}).`,
-      );
+    if (amountPaid > totalAmount) {
+      changeReturned = amountPaid - totalAmount;
+    } else if (amountPaid < totalAmount) {
+      amountDue = totalAmount - amountPaid;
+      status = amountPaid > 0 ? PaymentStatus.PARTIAL : PaymentStatus.DUE;
     }
 
     const payment = this.paymentRepository.create({
       order: order,
       payment_method: selectedMethod,
-      amount_paid: createPaymentDto.amountPaid,
-      change_returned: calculatedChange,
+      amount_paid: amountPaid,
+      amount_due: amountDue,
+      change_returned: changeReturned,
+      status: status,
     });
 
     return this.paymentRepository.save(payment);

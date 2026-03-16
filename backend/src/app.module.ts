@@ -8,6 +8,8 @@ import { MedicinesModule } from './medicines/medicines.module';
 import { CustomersModule } from './customers/customers.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 import { validateEnv } from './common/config/env.validation';
 
 @Module({
@@ -18,6 +20,7 @@ import { validateEnv } from './common/config/env.validation';
     }),
 
     TypeOrmModule.forRootAsync({
+      // ... (already configured correctly)
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
@@ -28,13 +31,16 @@ import { validateEnv } from './common/config/env.validation';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
-        synchronize: true,
-        ssl: true,
-        extra: {
-          ssl: {
-            rejectUnauthorized: false,
-          },
-        },
+        synchronize: configService.get<string>('DB_SYNCHRONIZE') === 'true',
+        ssl: configService.get<string>('DB_SSL') === 'true',
+        extra:
+          configService.get<string>('DB_SSL') === 'true'
+            ? {
+                ssl: {
+                  rejectUnauthorized: false,
+                },
+              }
+            : {},
       }),
     }),
 
@@ -42,6 +48,8 @@ import { validateEnv } from './common/config/env.validation';
     CustomersModule,
     OrdersModule,
     PaymentsModule,
+    UsersModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
