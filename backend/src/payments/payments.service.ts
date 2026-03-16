@@ -1,26 +1,119 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Payment } from './entities/payment.entity';
+import { Repository } from 'typeorm';
+import { Order } from '../orders/entities/order.entity';
+import { PaymentMethod } from './entities/payment.entity';
 
 @Injectable()
 export class PaymentsService {
-  create(createPaymentDto: CreatePaymentDto) {
-    return 'This action adds a new payment';
+  constructor(
+    @InjectRepository(Payment)
+    private readonly paymentRepository: Repository<Payment>,
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+  ) {}
+
+  async create(createPaymentDto: CreatePaymentDto) {
+    const order = await this.orderRepository.findOne({
+      where: { id: createPaymentDto.orderId },
+      relations: ['payment'],
+    });
+
+    if (!order) {
+      throw new NotFoundException(
+        `Order ID ${createPaymentDto.orderId} not found`,
+      );
+    }
+
+    if (order.payment) {
+      throw new BadRequestException('This order has already been paid.');
+    }
+
+    // Explicitly typed enums based on the DTO string.
+    let selectedMethod: PaymentMethod;
+    if (createPaymentDto.paymentMethod === 'BANK_CARD') {
+      selectedMethod = PaymentMethod.CARD;
+    } else {
+      selectedMethod = createPaymentDto.paymentMethod as PaymentMethod;
+    }
+
+    // Explicitly derive change owed to ensure financial integrity.
+    const calculatedChange =
+      Number(createPaymentDto.amountPaid) - Number(order.total_amount);
+
+    if (calculatedChange < 0) {
+      throw new BadRequestException(
+        `Amount paid (${createPaymentDto.amountPaid}) is insufficient for total (${order.total_amount}).`,
+      );
+    }
+
+    const payment = this.paymentRepository.create({
+      order: order,
+      payment_method: selectedMethod,
+      amount_paid: createPaymentDto.amountPaid,
+      change_returned: calculatedChange,
+    });
+
+    return this.paymentRepository.save(payment);
   }
 
-  findAll() {
-    return `This action returns all payments`;
+  async findAll() {
+    return this.paymentRepository.find({
+      relations: ['order'],
+      order: {
+        created_at: 'DESC',
+      },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} payment`;
+  async findOne(id: string) {
+    const payment = await this.paymentRepository.findOne({
+      where: { id },
+      relations: ['order'],
+    });
+
+    if (!payment) {
+      throw new NotFoundException(`Payment ID ${id} not found`);
+    }
+
+    return payment;
   }
 
-  update(id: number, updatePaymentDto: UpdatePaymentDto) {
-    return `This action updates a #${id} payment`;
+  async update(id: string, updatePaymentDto: UpdatePaymentDto) {
+    const payment = await this.findOne(id);
+
+    // Explicitly handle updating the payment_method if it's part of the update
+    let updatedMethod = payment.payment_method;
+    if (updatePaymentDto.paymentMethod) {
+      if (updatePaymentDto.paymentMethod === 'BANK_CARD') {
+        updatedMethod = PaymentMethod.CARD;
+      } else {
+        updatedMethod = updatePaymentDto.paymentMethod as PaymentMethod;
+      }
+    }
+
+    const updatedPayment = await this.paymentRepository.preload({
+      id: payment.id,
+      ...updatePaymentDto,
+      payment_method: updatedMethod,
+    });
+
+    if (!updatedPayment) {
+      throw new NotFoundException(`Payment with ID ${id} not found for update`);
+    }
+
+    return this.paymentRepository.save(updatedPayment);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} payment`;
+  async remove(id: string) {
+    const payment = await this.findOne(id);
+    return this.paymentRepository.remove(payment);
   }
 }

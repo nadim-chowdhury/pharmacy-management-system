@@ -8,13 +8,24 @@ import {
 } from 'typeorm';
 import { Order } from '../../orders/entities/order.entity';
 
+export enum PaymentStatus {
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+}
+export enum PaymentMethod {
+  CASH = 'CASH',
+  CARD = 'CARD',
+  MFS = 'MFS',
+}
+
 @Entity('payments')
 export class Payment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  payment_method: string; // e.g. 'Cash', 'Card', 'MFS'
+  @Column({ type: 'enum', enum: PaymentMethod })
+  payment_method: PaymentMethod;
 
   @Column('decimal', { precision: 10, scale: 2 })
   amount_paid: number;
