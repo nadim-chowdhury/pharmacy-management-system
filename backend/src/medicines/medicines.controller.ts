@@ -18,22 +18,22 @@ export class MedicinesController {
   constructor(private readonly medicinesService: MedicinesService) {}
 
   @Post()
-  create(@Body() createMedicineDto: CreateMedicineDto) {
+  async create(@Body() createMedicineDto: CreateMedicineDto) {
     return this.medicinesService.create(createMedicineDto);
   }
 
   @Get()
-  findAll(@Query() filterDto: GetMedicinesFilterDto) {
+  async findAll(@Query() filterDto: GetMedicinesFilterDto) {
     return this.medicinesService.findAll(filterDto);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string) {
     return this.medicinesService.findOne(id);
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id') id: string,
     @Body() updateMedicineDto: UpdateMedicineDto,
   ) {
@@ -41,7 +41,7 @@ export class MedicinesController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string) {
     return this.medicinesService.remove(id);
   }
 }
