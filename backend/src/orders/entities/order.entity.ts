@@ -6,6 +6,7 @@ import {
   ManyToOne,
   OneToMany,
   OneToOne,
+  DeleteDateColumn,
 } from 'typeorm';
 import { Customer } from '../../customers/entities/customer.entity';
 import { OrderItem } from './order-item.entity';
@@ -36,4 +37,7 @@ export class Order {
 
   @CreateDateColumn()
   created_at: Date;
+
+  @DeleteDateColumn()
+  deleted_at: Date;
 }
